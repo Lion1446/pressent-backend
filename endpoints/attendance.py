@@ -14,6 +14,7 @@ def attendance():
         if request.method == "POST":
             request_data = request.data
             request_data = json.loads(request_data.decode('utf-8')) 
+            request_data["code"] = request_data["code"].upper()
             print(request_data)
             logged_time = datetime.now()
             section = Section.query.filter(Section.name == request_data["section_name"]).first()
