@@ -14,9 +14,8 @@ def attendance():
         if request.method == "POST":
             request_data = request.data
             request_data = json.loads(request_data.decode('utf-8')) 
-            logged_time = datetime.strptime(request_data["logged_time"], "%m/%d/%Y %H:%M:%S")
-
-            section = Section.query.filter(Section.machine_id == request_data["machine_id"], Section.start_time <= logged_time, Section.end_time >= logged_time).first()
+            logged_time = datetime.now()
+            section = Section.query.filter(Section.name == request_data["section_name"]).first()
             if section is None:
                 return make_response({"status": 404, "remarks": "Inappropriate log info"})
             student = User.query.filter(User.code == request_data["code"], User.user_type == 1).first()
