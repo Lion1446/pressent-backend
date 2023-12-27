@@ -52,14 +52,13 @@ def attendance():
                 students = []
                 for a in attendance:
                     student = User.query.filter(User.id == a.student_id, User.user_type == 1).first()
-                    students.append(student.to_map())
-                teacher = User.query.filter(User.id == section.teacher_id, User.user_type == 2).first()
+                    log = a.to_map()
+                    log["student"] = student.fullname
+                    students.append(log)
                 response_body = {}
                 response_body["status"] = 200
                 response_body["remarks"] = "Success"
-                response_body["students"] = students
-                response_body["section"] = section.to_map()
-                response_body["teacher"] = teacher.to_map()
+                response_body["attendance"] = students
                 resp = make_response(response_body)
         elif request.method == "DELETE":
             id = request.args.get('id')
