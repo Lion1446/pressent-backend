@@ -3,7 +3,7 @@ from flask import make_response, request
 import json
 from models import Attendance, Section, User
 from models import db
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 attendance_blueprint = Blueprint('attendance_blueprint', __name__)
@@ -38,11 +38,17 @@ def attendance():
 
         elif request.method == "GET":
             section_id = request.args.get('section_id')
-            if section_id is None:
-                resp = make_response({"status": 400, "remarks": "Missing id in the query string"})
+            date = request.args.get('date')
+            if section_id is None or date is None:
+                resp = make_response({"status": 400, "remarks": "Missing id or date in the query string"})
             else:
                 section = Section.query.get(section_id)
-                attendance = Attendance.query.filter(Attendance.section_id == section_id).all()
+                date = datetime.strptime(date, '%m/%d/%Y')
+                attendance = Attendance.query.filter(
+                    Attendance.section_id == section_id,
+                    Attendance.datetime_created >= date,
+                    Attendance.datetime_created < date + timedelta(days=1)
+                ).all()
                 students = []
                 for a in attendance:
                     student = User.query.filter(User.id == a.student_id, User.user_type == 1).first()
