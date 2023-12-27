@@ -3,7 +3,6 @@ from flask import make_response, request
 import json
 from models import Enrollment, Section, User
 from models import db
-from datetime import datetime
 
 
 enrollment_blueprint = Blueprint('enrollment_blueprint', __name__)

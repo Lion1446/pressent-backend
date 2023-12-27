@@ -78,3 +78,25 @@ def section():
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
     
+@section_blueprint.route('/sections', methods=["GET"])
+def sections():
+    try:
+        teacher_id = request.args.get('teacher_id')
+        if teacher_id is None:
+            resp = make_response({"status": 400, "remarks": "Missing teacher_id in the query string"})
+        else:
+            instances = Section.query.filter(Section.teacher_id == teacher_id).all()
+            sections = []
+            for instance in instances:
+                sections.append(instance.to_map())
+            response_body = {
+                "status": 200,
+                "remarks": "Success",
+                "data": sections
+            }
+            resp = make_response(response_body)
+    except Exception as e:
+        print(e)
+        resp = make_response({"status": 500, "remarks": f"Internal server error: {e}"})
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
