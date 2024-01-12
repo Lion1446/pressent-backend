@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask import make_response, request
 import json
-from models import Attendance, Section, User
+from models import Attendance, Section, User, Enrollment
 from models import db
 from datetime import datetime, timedelta
 
@@ -72,5 +72,67 @@ def attendance():
     except Exception as e:
         print(e)
         resp = make_response({"status": 500, "remarks": f"Internal server error: {e}"})
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
+
+@attendance_blueprint.route('/attendances', methods=["GET"])
+def attendances():
+    if request.method == "GET":
+        section_id = request.args.get('section_id')
+        date_start = request.args.get('date_start')
+        date_end = request.args.get('date_end')
+        if section_id is None or date_start is None or date_end is None:
+            resp = make_response({"status": 400, "remarks": "Missing id or date in the query string"})
+        else:
+            section = Section.query.get(section_id)
+            date_start = datetime.strptime(date_start, '%m/%d/%Y')
+            date_end = datetime.strptime(date_end, '%m/%d/%Y')
+            current_date = date_start
+            
+            students_attendance = {}
+            
+            # Fetch all students enrolled in the section
+            enrollments = Enrollment.query.filter(Enrollment.section_id == section_id).all()
+            
+            # Initialize attendance data for each student
+            for enrollment in enrollments:
+                student_id = enrollment.student_id
+                student = User.query.filter(User.id == student_id, User.user_type == 1).first()
+                students_attendance[student.fullname] = {
+                    "student": student.fullname,
+                    "attendance_logs": {}
+                }
+
+            while current_date <= date_end:
+                print(current_date.strftime("%Y-%m-%d"))
+                attendance = Attendance.query.filter(
+                    Attendance.section_id == section_id,
+                    Attendance.datetime_created >= current_date,
+                    Attendance.datetime_created < current_date + timedelta(days=1)
+                ).all()
+
+                for a in attendance:
+                    student_id = a.student_id
+                    student_name = User.query.filter(User.id == student_id, User.user_type == 1).first().fullname
+                    students_attendance[student_name]["attendance_logs"][current_date.strftime("%m/%d/%Y")] = True
+
+                # Populate absence for students who don't have attendance logs for the current date
+                for student_name, student_data in students_attendance.items():
+                    if current_date.strftime("%m/%d/%Y") not in student_data["attendance_logs"]:
+                        student_data["attendance_logs"][current_date.strftime("%m/%d/%Y")] = False
+
+                current_date += timedelta(days=1)
+            
+            # Convert dictionary values to a list for the response, arranged alphabetically
+            students_attendance_list = sorted(list(students_attendance.values()), key=lambda x: x["student"])
+            
+            response_body = {
+                "status": 200,
+                "remarks": "Success",
+                "attendance": students_attendance_list
+            }
+            
+            resp = make_response(response_body)
+    
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
